@@ -1,0 +1,279 @@
+\documentclass[12pt,a4paper]{scrartcl} 
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{indentfirst}
+\usepackage{misccorr}
+\usepackage{graphicx}
+\usepackage{amsmath,amsfonts,amssymb,amsthm,mathtools} % It`s AMS
+\begin{document}
+	\begin{titlepage}
+		\begin{center}
+			\large
+			МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ РОССИЙСКОЙ ФЕДЕРАЦИИ
+			
+			Федеральное государственное бюджетное образовательное учреждение высшего образования
+			
+			\textbf{АДЫГЕЙСКИЙ ГОСУДАРСТВЕННЫЙ УНИВЕРСИТЕТ}
+			\vspace{0.25cm}
+			
+			Инженерно-физический факультет
+			
+			Кафедра автоматизированных систем обработки информации и управления
+			\vfill
+                         \vfill 
+                          
+                         \textsc{Отчет по практике}\\[5mm] 
+                          
+                         {\LARGE \textit{Написать программу генератор случайных чисел Парка-Миллера с перетасовкой и без перетасовки, вариант 2.}} 
+                         \bigskip 
+                          
+                         2 курс, группа 2ИВТ2 
+                 \end{center} 
+                 \vfill 
+                  
+                 \newlength{\ML} 
+                 \settowidth{\ML}{«\underline{\hspace{0.7cm}}» \underline{\hspace{2cm}}} 
+                 \hfill\begin{minipage}{0.5\textwidth} 
+                         Выполнили:\\ 
+                         
+                         \underline{\hspace{\ML}} Гоголев\,В.Э\\
+                      
+                         «\underline{\hspace{0.7cm}}» \underline{\hspace{2cm}} 2022 г. 
+                 \end{minipage}% 
+                 \bigskip 
+                  
+                 \hfill\begin{minipage}{0.5\textwidth} 
+                         Руководитель:\\ 
+                         \underline{\hspace{\ML}} С.\,В.~Теплоухов\\ 
+                         «\underline{\hspace{0.7cm}}» \underline{\hspace{2cm}} 2022 г. 
+                 \end{minipage}% 
+                 \vfill 
+ 
+                  
+\begin{center} 
+Майкоп, 2022 г. 
+\end{center} 
+\end{titlepage} 
+
+
+
+\begin{document}
+\section{Введение}
+\label{sec:intro}
+
+% Что должно быть во введении
+\begin{enumerate}
+\item Текстовая формулировка задачи
+\item код данной задачи
+\item скриньшот программы
+\end{enumerate}
+
+\section {Вариант 2}
+\item задание
+\item Генератор случайных чисел Парка-Миллера с перетасовкой и без перетасовки.
+
+\item Теория
+\item Самая простая последовательность, которая можно предложить для реализации генератора равномерного распределения:
+\item I(j+1)=a*I(j)(mod m) 
+\item при соответствующей выборе констант. Константы были предложены Park и Miller:
+
+\item a=$7^5$ =16807, m=${2^3}^1$-1 =2147483647.
+\item Модуль разлагается в выражение:
+\item m=a*q+r
+
+\item Если r<q и 0<z<m-1, то при этом величины a*(z mod q) и r*[z/q] всегда лежат в интервале 0,...,m-1. Для умножения (a*z)(mod m) при этом используется алгоритм:
+\item •t = a(z mod q)-r[z/q]
+\item •если t<0, то t+=m.
+\item •(a*z)(mod m) = t
+
+\item В случае констант Парка-Миллера можно использовать q = 12773 и r = 2836.
+
+\section{Ход работы}
+\label{sec:exp}
+
+\subsection{Код приложения}
+\label{sec:exp:code}
+\begin{verbatim}
+Генератор случайных чисел Парка-Миллера с перетасовкой
+#include <stdio.h>
+#define IA 16807
+#define IM 2147483647
+#define AM (1./IM)
+#define IQ 12773
+#define IR 2836
+#define NTAB 32
+#define NWUP 8
+#define NDIV (1+(IM-1)/NTAB)
+#define EPS 1.2e-7
+#define RNMX (1.0-EPS)
+#define MASK 123456789
+
+static long dummy;
+void Seed(long dum) {
+	dummy = dum;
+}
+
+float unirand0(void) {
+	long k;
+	float ans;
+
+	dummy ^= MASK;	
+	k = dummy / IQ;
+
+	if ((dummy = IA * (dummy - k * IQ) - IR * k) < 0)
+		dummy += IM;
+
+	ans = AM * dummy;
+
+	dummy ^= MASK;	
+
+	return(ans);
+}
+
+float unirand1(void) {
+	int j;
+	long k;
+	static long iy = 0, iv[NTAB];
+	float temp;
+	
+	if (dummy <= 0 || !iy) {
+		if (dummy < 0) dummy = -dummy; else
+			if (dummy == 0) dummy = 1;
+		for (j = NTAB + NWUP - 1; j >= 0; j--) {
+			k = dummy / IQ;
+
+			if ((dummy = IA * (dummy - k * IQ) - IR * k) < 0)
+				dummy += IM;
+
+			if (j < NTAB)
+				iv[j] = dummy;
+		}
+
+		iy = iv[0];
+	}
+
+	k = dummy / IQ;
+	if ((dummy = IA * (dummy - k * IQ) - IR * k) < 0)
+		dummy += IM;
+
+	iy = iv[j = iy / NDIV];
+	iv[j] = dummy;
+
+	if ((temp = AM * iy) > RNMX)
+		return(RNMX);
+	else
+		return(temp);
+}
+
+int main() {
+	int i;
+	Seed(6723);
+	for (i = 0; i < 100; i++)
+		printf("%f\n", unirand1());
+}
+
+Генератор случайных чисел Парка-Миллера без перетасовки
+#include <stdio.h>
+#define IA 16807
+#define IM 2147483647
+#define AM (1./IM)
+#define IQ 12773
+#define IR 2836
+#define MASK 123456789
+
+static long dummy;
+void Seed(long dum) {
+	dummy = dum;
+}
+
+float unirand0(void) {
+	long k;
+	float ans;
+
+	dummy ^= MASK;
+	k = dummy / IQ;
+
+	if ((dummy = IA * (dummy - k * IQ) - IR * k) < 0)
+		dummy += IM;
+
+	ans = AM * dummy;
+
+	dummy ^= MASK;
+
+	return(ans);
+}
+
+int main() {
+	int i;
+	Seed(6723);
+	for (i = 0; i < 100; i++)
+		printf("%f\n", unirand0());
+}
+\end{verbatim}
+\subsection{формулы}
+\label{sec:mathexample}
+
+Общая формула генератора случайных чисел \ Xk+1=a * Xk  mod m
+\newpage
+\begin{document}
+\section{Пример скриньшота программы }
+Генератор случайных чисел Парка-Миллера с перетасовкой
+\label{sec:picexample}
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{скрин по с++.png}
+\caption{скриньшот программы}\label{fig:par}
+
+\end{figure}
+\newpage
+\begin{document}
+\label{sec:picexample}
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{скрин с++ (2).png}
+\caption{скриньшот программы}\label{fig:par}
+
+\end{figure}
+\newpage
+\begin{document}
+\label{sec:picexample}
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{скрин с++ (3).png}
+\caption{скриньшот программы}\label{fig:par}
+\end{figure}
+
+\newpage
+\begin{document}
+\label{sec:picexample}
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{скрин с++ (4).png}
+\caption{скриньшот программы}\label{fig:par}
+\end{figure}
+
+\newpage
+\begin{document}
+Генератор случайных чисел Парка-Миллера без перетасовкой
+\label{sec:picexample}
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{скрин с++ (5).png}
+\caption{скриньшот программы}\label{fig:par}
+\end{figure}
+
+
+\section{ библиографические ссылки}
+
+Для изучения «внутренностей» \TeX{} необходимо
+изучить~\cite{Knuth-2003}, а для использования \LaTeX{} лучше
+почитать~\cite{Lvovsky-2003, Voroncov-2005}.
+
+\begin{thebibliography}{9}
+\bibitem{Knuth-2003}Кнут Д.Э. Всё про \TeX. \newblock —- Москва: Изд. Вильямс, 2003 г. 550~с.
+\bibitem{Lvovsky-2003}Львовский С.М. Набор и верстка в системе \LaTeX{}. \newblock —- 3-е издание, исправленное и дополненное, 2003 г.
+\bibitem{Voroncov-2005}Воронцов К.В. \LaTeX{} в примерах. 2005 г.
+\end{thebibliography}
+\end{document}
+\end{document}
+\end{document}
